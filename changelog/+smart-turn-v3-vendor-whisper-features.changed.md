@@ -1,0 +1,3 @@
+- Replaced the `transformers.WhisperFeatureExtractor` dependency in `LocalSmartTurnAnalyzerV3` with a vendored numpy-only implementation, reducing peak RSS at import from ~566 MB to ~60 MB and cold-start time from ~5.0 s to ~0.3 s. Behavior is numerically equivalent (matches the reference numpy code path within 1e-5 absolute tolerance; ONNX model output is bit-identical on representative inputs).
+  - Smart Turn v3 no longer imports `transformers` at module load.
+  - Prepares the ground for making `transformers` an optional dependency in a future release.
