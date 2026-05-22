@@ -109,6 +109,10 @@ class BaseSmartTurn(BaseTurnAnalyzer):
         # Append the raw int16 PCM view to the buffer. Conversion to float32 is
         # deferred until _process_speech_segment, where it runs once per turn
         # on the concatenated segment instead of once per ~20 ms audio frame.
+        # Safe because InputAudioRawFrame.audio is typed `bytes` (immutable in
+        # Python); audio filters and mixers that "modify" a frame's audio do
+        # so by reassigning frame.audio to a new bytes object, never by
+        # mutating the buffer this view points at.
         audio_int16 = np.frombuffer(buffer, dtype=np.int16)
         self._audio_buffer.append((time.monotonic(), audio_int16))
 
