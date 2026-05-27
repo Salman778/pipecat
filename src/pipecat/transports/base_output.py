@@ -577,15 +577,26 @@ class BaseOutputTransport(FrameProcessor):
 
             cls = type(frame)
             self._audio_buffer.extend(resampled)
-            while len(self._audio_buffer) >= self._audio_chunk_size:
+            chunk_size = self._audio_chunk_size
+            while len(self._audio_buffer) >= chunk_size:
+                # `bytes(memoryview(buf)[:n])` is one copy of n bytes - the
+                # memoryview slice is a view, only the `bytes()` cast copies.
+                # The previous `bytes(buf[:n])` form sliced the bytearray
+                # (one copy) and then cast it to bytes (a second copy of
+                # the same n bytes).
+                chunk_bytes = bytes(memoryview(self._audio_buffer)[:chunk_size])
+                # In-place delete of the head. `buf = buf[n:]` rebound a new
+                # bytearray each iteration; `del buf[:n]` shifts the
+                # remaining tail down inside the existing bytearray.
+                del self._audio_buffer[:chunk_size]
+
                 chunk = cls(
-                    bytes(self._audio_buffer[: self._audio_chunk_size]),
+                    chunk_bytes,
                     sample_rate=self._sample_rate,
                     num_channels=frame.num_channels,
                 )
                 chunk.transport_destination = self._destination
                 await self._audio_queue.put(chunk)
-                self._audio_buffer = self._audio_buffer[self._audio_chunk_size :]
 
         async def handle_image_frame(self, frame: OutputImageRawFrame | SpriteFrame):
             """Handle incoming image frames for video output.
